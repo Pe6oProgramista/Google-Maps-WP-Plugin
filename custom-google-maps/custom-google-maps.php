@@ -27,10 +27,6 @@ function load_my_scripts() {
 
 	$markers = $wpdb->get_results( "SELECT * FROM $table_name;" );
 
-	/*$markers = array(
-		'a' => 'zdr',
-		'b' => 'mango'
-	);*/
 
 	wp_localize_script( 'myScript', 'db_markers', $markers );
 }
