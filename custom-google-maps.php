@@ -41,9 +41,20 @@ function activate() {
 	$charset_collate = $wpdb->get_charset_collate();
 
 	$sql = "CREATE TABLE IF NOT EXISTS $table_name (
-	  id integer NOT NULL AUTO_INCREMENT,
-	  lat float(9,6) NOT NULL,
-	  lng float(9,6) NOT NULL,
+      id integer NOT NULL AUTO_INCREMENT,
+      city text,
+      country text,
+      countryCode text,
+      distance double,
+      geodbId integer,
+      latitude double,
+      longitude double,
+      name text,
+      region text,
+      regionCode text,
+      type text,
+      wikiDataId text,
+	  
 	  PRIMARY KEY  (id)
 	) $charset_collate;";
 
@@ -61,5 +72,9 @@ function deactivate() {
 register_activation_hook(__FILE__, 'activate');
 register_deactivation_hook(__FILE__, 'deactivate');
 
-
+/**
+*	check for updates in cities
+*	add filter
+*	check for errors in request
+*	
 

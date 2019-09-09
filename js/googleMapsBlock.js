@@ -3,10 +3,10 @@
  
     var blockStyle = {
 		top: '10vh',
-		left: '20vw',
-		border:'1px solid black',
-		width: '60vw',
-		height: '80vh',
+//		left: '20vw',
+		border:'0px',
+		width: '100vw',
+		height: '50vh',
 		position: 'none',
 	};
  
