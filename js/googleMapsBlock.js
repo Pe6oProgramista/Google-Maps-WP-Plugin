@@ -20,7 +20,7 @@
                 el ('div', null, 'Filter markers by: '),
                 el ( 'form', { id: 'filtersForm', action: '', method: 'POST', onsubmit: 'return makeChanges("filtersForm")' },
                     filters,
-                    el ( 'input', { type: 'submit', value: "Filter"} )
+                    el ( 'input', { type: 'submit', value: "Filter "} )
                 )
             ),
             el( 'div', { id: 'map' }
