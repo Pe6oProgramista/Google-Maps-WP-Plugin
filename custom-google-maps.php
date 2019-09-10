@@ -51,7 +51,12 @@ function load_my_scripts() {
     wp_localize_script( 'dropDownFunc', 'db_markers', $markers );
 }
 
+function callback_function() {
+    
+}
+
 add_action( 'init', 'google_maps_register_block' );
+Add_action( 'init','callback_function' );
 add_action('wp_enqueue_scripts', 'load_my_scripts');
 add_action( 'wp_enqueue_scripts', 'register_plugin_styles' );
 
@@ -98,4 +103,9 @@ register_deactivation_hook(__FILE__, 'deactivate');
 *	add filter
 *	check for errors in request
 *	
+*   distinc filters names
+*   sort
+*   auto complite
+*   AND betrween filters
+*   update fiters depending on another filters
 
