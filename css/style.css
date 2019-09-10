@@ -1,0 +1,39 @@
+.dropdown {
+  position: relative;
+  display: block;
+  margin: 10px;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  min-width: 160px;
+  overflow: auto;
+  /* box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); */
+  z-index: 1;
+}
+
+.dropdown-content select option {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown select option:hover {background-color: #ddd;}
+
+.show {display: block;}
+
+form {
+    display: inline-block;
+}
+
+#map {
+    margin: 10px;
+    /* top: 5px; */
+    right: 14vw;
+    border: 0px;
+    width: 100vw;
+    height: 60vh;
+    position: none;
+}

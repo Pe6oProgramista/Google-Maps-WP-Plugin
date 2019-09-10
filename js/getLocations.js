@@ -1,47 +1,61 @@
 // search: "get list of cities api"  >>>>>>>  http://geodb-cities-api.wirefreethought.com/
 
 
-var fetch = require('node-fetch');
-var mysql = require('mysql');
+const fetch = require('node-fetch');
+const mysql = require('mysql');
 
-var con = mysql.createConnection({
+const con = mysql.createConnection({
 	host: "localhost",
 	user: process.env.DB_USER,
 	password: process.env.DB_PASSWORD,
 	database: process.env.DB_NAME
 });
 
+function query(sql) {
+	return new Promise((resolve, reject) => {
+		con.query(sql, (err, data, fields) => {
+			if(!err){
+				resolve(data, fields);	
+			} else {
+				reject(err);
+			}
+		});
+	})
+
+}
+
 con.connect(async function(err) {
 	if (err) throw err;
 	console.log("Connected!");
 
+	const colsStr = "city,country,countryCode,distance,geodbId,latitude,longitude,name,region,regionCode,type,wikiDataId"
+	const cols = colsStr.replace('geodbId', 'id').split(',');
+
 	for(let i = 0; i < 10000; i += 10) {
-		await fetch(`http://geodb-free-service.wirefreethought.com/v1/geo/cities?limit=10&offset=${i}`)
+		await fetch(`http://geodb-free-service.wirefreethought.com/v1/geo/cities?limit=1&offset=${i}`)
 		.then(r => r.json())
 		.then(r => {
-			var sql = "INSERT INTO wp_markers (city,country,countryCode,distance,geodbId,latitude,longitude,name,region,regionCode,type,wikiDataId) VALUES ";
+			let sql = 'INSERT INTO wp_markers (' + colsStr + ') VALUES ';
+			let values = [];
+			let sqlValues = [];
 			for (let j = 0; j < r.data.length; j++) {
-				sql += ((j > 0)?", ":"") +
-					`(${r.data[j].hasOwnProperty('city')?'"' + r.data[j].city + '"':"NULL"},
-					${r.data[j].hasOwnProperty('country')?'"' + r.data[j].country + '"':"NULL"},
-					${r.data[j].hasOwnProperty('countryCode')?'"' + r.data[j].countryCode + '"':"NULL"},
-					${r.data[j].hasOwnProperty('distance')?r.data[j].distance:"NULL"},
-					${r.data[j].hasOwnProperty('id')?r.data[j].id:"NULL"},
-					${r.data[j].hasOwnProperty('latitude')?r.data[j].latitude:"NULL"},
-					${r.data[j].hasOwnProperty('longitude')?r.data[j].longitude:"NULL"},
-					${r.data[j].hasOwnProperty('name')?'"' + r.data[j].name + '"':"NULL"},
-					${r.data[j].hasOwnProperty('region')?'"' + r.data[j].region + '"':"NULL"},
-					${r.data[j].hasOwnProperty('regionCode')?'"' + r.data[j].regionCode + '"':"NULL"},
-					${r.data[j].hasOwnProperty('type')?'"' + r.data[j].type + '"':"NULL"},
-					${r.data[j].hasOwnProperty('wikiDataId')?'"' + r.data[j].wikiDataId + '"':"NULL"})`;
+				
+				let qm = [];
+				for ( let c of cols ) {
+					values.push(r.data[j][c]);
+					qm.push('?');
+				}
+				sqlValues.push("(" + qm.join(',') + ")");
 			}
-			sql += ";";
+			sql += sqlValues.join(',');
 
-			con.query(sql, function (err, result) {
+			con.query(sql, values, function (err, result) {
 				if (err) throw err;
 				console.log("10 records inserted");
 			});
 		})
 		.catch(error => console.log(error.message));
 	}
+	console.log("Finish");
+	con.end();
 });
