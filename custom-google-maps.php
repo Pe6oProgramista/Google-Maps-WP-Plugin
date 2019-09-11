@@ -35,28 +35,24 @@ function register_plugin_styles() {
 }
 
 function load_my_scripts() {
-    // wp_enqueue_script('jqueryS', 'https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js', array(), false, true);
 	wp_enqueue_script('myScript', plugins_url( 'js/googleMaps.js', __FILE__ ), array(), false, true );
 	wp_enqueue_script('googleScript', 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBrs6IwIvyxTG0IkEBuFkpImHscVt36Riw&callback=initMap', array(), false, true );
     wp_enqueue_script('dropDownFunc', plugins_url( 'js/dropDownFunc.js', __FILE__ ), array('jquery'), false, true );
 
 	global $wpdb;
-
 	$table_name = $wpdb->prefix . 'markers';
-
 	$markers = $wpdb->get_results( "SELECT * FROM $table_name;" );
-
 
     wp_localize_script( 'myScript', 'db_markers', $markers );
     wp_localize_script( 'dropDownFunc', 'db_markers', $markers );
 }
 
-function callback_function() {
-    
+function handle_requests() {
+    // print_r("zzzz");
 }
 
 add_action( 'init', 'google_maps_register_block' );
-Add_action( 'init','callback_function' );
+add_action( 'init','handle_requests' );
 add_action('wp_enqueue_scripts', 'load_my_scripts');
 add_action( 'wp_enqueue_scripts', 'register_plugin_styles' );
 
@@ -107,5 +103,6 @@ register_deactivation_hook(__FILE__, 'deactivate');
 *   sort
 *   auto complite
 *   AND betrween filters
-*   update fiters depending on another filters
+*   update fiters depending on another filters military design*/
+
 
