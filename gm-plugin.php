@@ -1,10 +1,11 @@
 <?php
 /**
-Plugin Name: Google Maps
-Description: plugin for custom Google Maps element
-Version: 1.0.0
-Author: Peter Milev 
+*   Plugin Name: Google Maps
+*   Description: plugin for custom Google Maps element
+*   Version: 1.0.0
+*   Author: Peter Milev 
 */
+
 function google_maps_register_block() {
     wp_register_script(
         'google-maps',
@@ -12,56 +13,112 @@ function google_maps_register_block() {
         array( 'wp-blocks', 'wp-element')
     );
     
+    $colsStr = "city,country,region,type";
+    $cols = explode(",", $colsStr);
+
     global $wpdb;
-	$table_name = $wpdb->prefix . 'markers';
-    $existing_columns = $wpdb->get_col("DESC {$table_name}", 0);
-    $markers = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 10;" );
+    $table_name = $wpdb->prefix . 'markers';
 
-    $db_markers = array (
-        'columns' => $existing_columns,
-        'markers' => $markers
-    ) ;
+    $filters_values = array();
+    foreach ($cols as $col_name) {
+        $filters_values[$col_name] = $wpdb->get_results( "SELECT DISTINCT $col_name FROM $table_name ORDER BY $col_name ASC;" ); //ORDER BY $col_name ASC
+    }
 
-    wp_localize_script( 'google-maps', 'db_markers', $db_markers );
+    wp_localize_script( 'google-maps', 'filters_values', $filters_values );
  
     register_block_type( 'gm-plugin/google-maps', array(
         'editor_script' => 'google-maps',
     ) );
 }
+add_action( 'init', 'google_maps_register_block' );
+
+function load_my_scripts() {
+    wp_enqueue_script('myScript', plugins_url( 'js/googleMaps.js', __FILE__ ), array('jquery'), false, true );
+	wp_enqueue_script('googleScript', 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBrs6IwIvyxTG0IkEBuFkpImHscVt36Riw&callback=initMap', array(), false, true );
+
+	global $wpdb;
+	$table_name = $wpdb->prefix . 'markers';
+	$markers = $wpdb->get_results( "SELECT * FROM $table_name;" ); //LIMIT 10
+
+    wp_localize_script( 'myScript', 'argsArray', array(
+        'db_markers' => $markers,
+        'ajaxUrl' => admin_url('admin-ajax.php')
+    ) );
+}
+add_action('wp_enqueue_scripts', 'load_my_scripts');
+
+function handle_filters_request() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'markers';
+
+    $colsStr = "city,country,region,type";
+    $cols = explode(",", $colsStr);
+
+    $post_filters = isset($_POST['filters'])?$_POST['filters']:[];
+
+    if(count($cols) != count($post_filters)) {
+        $response = array(
+            'status' => 200,
+            'message' => 'Error in filters length'
+        );
+        wp_send_json($response);
+        wp_die();
+    }
+
+    $filters = array();
+    for ($i = 0; $i < count($post_filters); $i++) {
+        if( $post_filters[$i] != "" ) {
+            $filters[$cols[$i]] = $post_filters[$i];
+        }
+    }
+    
+    $sql = "SELECT * FROM $table_name";
+    $sql_arr = array();
+
+    if( count($filters) > 0 ) {
+        $sql .= " WHERE ";
+        $last_key = array_keys($filters)[count($filters)-1];
+        foreach ($filters as $key => $value) {
+            $curr_filters = explode(",", $value);
+            if( count($curr_filters) > 0 ) {
+                $sql .= "$key IN (";
+
+                $curr_last_key = array_keys($curr_filters)[count($curr_filters)-1];
+                foreach ($curr_filters as $k => $v) {
+                    $sql .= "\"%s\"";
+                    array_push($sql_arr, $v);
+
+                    if( $k != $curr_last_key ) {
+                    $sql .= ", ";
+                    }
+                }
+                $sql .= ")";
+                if($key != $last_key) {
+                    $sql .= " AND ";
+                }
+            }
+        }
+    }
+
+	$results = $wpdb->get_results( $wpdb->prepare( 
+        $sql, 
+        $sql_arr
+    ) );
+    
+	$response = array(
+		'message' => 'Successfull Request',
+		'body' => $results
+	);
+	wp_send_json($response);
+	wp_die();
+}
+add_action( 'wp_ajax_filters_request', 'handle_filters_request' );
+add_action( 'wp_ajax_nopriv_filters_request', 'handle_filters_request' );
 
 function register_plugin_styles() {
 	wp_register_style( 'style', plugins_url( 'gm-plugin/css/style.css' ) );
 	wp_enqueue_style( 'style' );
 }
-
-function load_my_scripts() {
-	wp_enqueue_script('myScript', plugins_url( 'js/googleMaps.js', __FILE__ ), array(), false, true );
-	wp_enqueue_script('googleScript', 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBrs6IwIvyxTG0IkEBuFkpImHscVt36Riw&callback=initMap', array(), false, true );
-    wp_enqueue_script('dropDownFunc', plugins_url( 'js/dropDownFunc.js', __FILE__ ), array('jquery'), false, true );
-
-	global $wpdb;
-	$table_name = $wpdb->prefix . 'markers';
-	$markers = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 10;" );
-
-    wp_localize_script( 'myScript', 'db_markers', $markers );
-    wp_localize_script( 'dropDownFunc', 'ajaxUrl', admin_url('admin-ajax.php'));
-}
-
-
-function handle_requests() {
-	$filters = isset($_POST['filters'])?trim($_POST['filters']):"";
-	$response = array(
-		'message' => 'Successfull Request',
-		'body' => $filters
-	);
-	wp_send_json($response);
-	wp_die();
-}
-add_action( 'wp_ajax_filter_request', 'handle_requests' );
-add_action( 'wp_ajax_nopriv_filter_request', 'handle_requests' );
-
-add_action( 'init', 'google_maps_register_block' );
-add_action('wp_enqueue_scripts', 'load_my_scripts');
 add_action( 'wp_enqueue_scripts', 'register_plugin_styles' );
 
 function activate() {
@@ -98,9 +155,11 @@ function deactivate() {
 	$sql = "DROP TABLE IF EXISTS $table_name;";
 	$wpdb->query($sql);
 }
-
 register_activation_hook(__FILE__, 'activate');
 register_deactivation_hook(__FILE__, 'deactivate');
+
+
+
 
 /**
 *	check for updates in cities
@@ -110,7 +169,8 @@ register_deactivation_hook(__FILE__, 'deactivate');
 *   distinc filters names
 *   sort
 *   auto complite
-*   AND betrween filters
-*   update fiters depending on another filters military design*/
+*   AND between filters
+*   update fiters depending on another filters 
+*   military design*/
 
 

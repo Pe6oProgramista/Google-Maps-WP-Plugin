@@ -2,12 +2,11 @@
     let el = element.createElement;
 
     let filters = [];
-    for (let col of db_markers.columns) {
-        let filter = el('div', { id: col + 'Div', class: 'dropdown' },
-            // el ( 'button', { type: 'button', onclick: `showDropdown("${col}Dropdown")`, class: 'dropbtn' }, col ),
-            el('input', { list: col + 'List', id: col + 'Input', class: 'filterInput', name: col, type: 'text', placeholder: `Type ${col} filter` }),
-            el('datalist', { id: col + 'List', class: 'filterList dropdown-content' },
-                db_markers.markers.map((m) => { return el('option', { value: m[col] }) })
+    for (let key of Object.keys(filters_values)) {
+        let filter = el('div', { id: key + 'Div', class: 'dropdown' },
+            el('input', { list: key + 'List', id: key + 'Input', class: 'filterInput', name: key, type: 'text', placeholder: `Type ${key} filter` }),
+            el('datalist', { id: key + 'List', class: 'filterList dropdown-content' },
+                filters_values[key].map((v) => { return el('option', { value: v[key] }) })
             )
         )
         filters.push(filter);
