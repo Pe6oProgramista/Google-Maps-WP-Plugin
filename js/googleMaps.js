@@ -1,5 +1,5 @@
 function initMap() {
-	let pos = {lat: 42.662369, lng:  23.373397};
+	let pos = {lat: 42, lng:  23};
 	let mapBlock = document.getElementById('map');
 	let map;
 	

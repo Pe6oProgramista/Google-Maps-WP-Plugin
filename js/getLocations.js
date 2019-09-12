@@ -32,7 +32,7 @@ con.connect(async function(err) {
 	const cols = colsStr.replace('geodbId', 'id').split(',');
 
 	for(let i = 0; i < 10000; i += 10) {
-		await fetch(`http://geodb-free-service.wirefreethought.com/v1/geo/cities?limit=1&offset=${i}`)
+		await fetch(`http://geodb-free-service.wirefreethought.com/v1/geo/cities?limit=10&offset=${i}`)
 		.then(r => r.json())
 		.then(r => {
 			let sql = 'INSERT INTO wp_markers (' + colsStr + ') VALUES ';

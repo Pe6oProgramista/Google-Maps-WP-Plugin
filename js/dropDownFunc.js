@@ -1,8 +1,74 @@
-// function showDropdown(id) {
-//     document.getElementById(id).classList.toggle("show");
-// }
+jQuery(document).ready(function () {
+    /*jQuery('.filterInput').focus(function () {
+        jQuery('.filterList').show();
+    });
+    jQuery('.filterInput').blur(function () {
+        jQuery('.filterList').hide();
+    });*/
+	jQuery("#filtersForm").submit(function(event) {
+        event.preventDefault();
+		let form = jQuery(this).serializeArray();
 
-function makeChanges(id) {
+		console.log(form);
+
+		let request_filters = form.map( (v) => ({ [v.name]: v.value }) )
+		console.log(request_filters);
+        jQuery.ajax({
+            type: "POST",
+            url: ajaxUrl,
+			data: {
+				action: 'filter_request',
+				filters: 'filtri'//jQuery(this).
+			},
+			error: function(msg){console.log(msg)}
+        }).done(function(result) {
+			console.log(result);
+		});
+    });
+});
+
+let datalists = jQuery('.filterList').map( (k, v) => jQuery(v) );
+let dl_options = datalists.toArray().map( (v) => {
+	return jQuery(`#${v.attr('id')} option`).toArray().map( v => v.value );
+})
+
+let inputs = jQuery('.filterInput');
+let lastInputsVals = inputs.map( (k, v) => jQuery(v).val() ); 
+let inputscommas = inputs.map( (k, v) => (jQuery(v).val().match(/,/g) || []).length );
+
+let separator = ',';
+
+function filldatalist(prefix, indx) {
+	if (dl_options[indx].length > 0) {
+	    datalists[indx].empty();
+		for (let option of dl_options[indx]) {
+		    if (prefix.indexOf(option) < 0) {
+		        datalists[indx].append(`<option value="${prefix}${option}">`);
+		    }
+		}
+    }
+}
+inputs.bind("change keyup", function () {
+	let indx = inputs.index( this );
+
+    let inputtrim = jQuery(this).val().replace(/^\s+|\s+$/g, " ");
+    let currentcommas = (jQuery(this).val().match(/,/g) || []).length;
+
+    if (lastInputsVals[indx] != jQuery(this).val()) {
+        if (inputscommas[indx] != currentcommas || jQuery(this).val() == "") {
+            let lsIndex = inputtrim.lastIndexOf(separator);
+            let str = (lsIndex != -1) ? inputtrim.substr(0, lsIndex) + ", " : "";
+
+            filldatalist(str, indx);
+
+            inputscommas[indx] = currentcommas;
+        }
+        jQuery(this).val(inputtrim);
+        lastInputsVals[indx] = inputtrim;
+    }
+});
+
+function makeChanges() {
     let form = jQuery('#' + id).serializeArray();
 
     let pos = { lat: 42, lng: 23 };
@@ -65,55 +131,3 @@ function makeChanges(id) {
 
     return false;
 }
-
-jQuery(document).ready(function () {
-    jQuery('.filterInput').focus(function () {
-        jQuery('.filterList').show();
-    });
-    jQuery('.filterInput').blur(function () {
-        jQuery('.filterList').hide();
-    });
-});
-
-var datalists = jQuery('.filterList');
-var dl_options = datalists.map( (k, v) => {
-	return jQuery(`#${jQuery(v).attr('id')} option`);
-})
-var dl_optionsarray = dl_options.map( (options) => {
-    return options.map( (option) => {
-        return option.value;
-    });
-});
-var inputs = jQuery('.filterInput');
-var lastInputsVals = inputs.map( ( k, v ) => { return v.val() }); 
-
-var inputscommas = inputs.map( ( k, v ) => { return (v.val().match(/,/g) || []).length });
-var separator = ',';
-
-function filldatalist(prefix) {
-    if (options.length > 0) {
-        datalist.empty();
-        for (i = 0; i < optionsarray.length; i++) {
-            if (prefix.indexOf(optionsarray[i]) < 0) {
-                datalist.append('<option value="' + prefix + optionsarray[i] + '">');
-            }
-        }
-    }
-}
-input.bind("change keyup", function () {
-    var inputtrim = input.val().replace(/^\s+|\s+$/g, "");
-    var currentcommas = (input.val().match(/,/g) || []).length;
-
-    if (lastInputVal != input.val()) {
-        if (inputcommas != currentcommas || input.val() == "") {
-            var lsIndex = inputtrim.lastIndexOf(separator);
-            var str = (lsIndex != -1) ? inputtrim.substr(0, lsIndex) + "," : "";
-
-            filldatalist(str);
-
-            inputcommas = currentcommas;
-        }
-        input.val(inputtrim);
-        lastInputVal = inputtrim;
-    }
-});

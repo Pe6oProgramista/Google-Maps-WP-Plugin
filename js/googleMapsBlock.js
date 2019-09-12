@@ -17,7 +17,7 @@
         return el('div', { id: 'myEl' },
             el('div', { id: 'filters' },
                 el('div', null, 'Filter markers by: '),
-                el('form', { id: 'filtersForm', action: '', method: 'POST', onsubmit: 'return makeChanges("filtersForm")' },
+                el('form', { id: 'filtersForm', method: 'POST' },
                     filters,
                     el('input', { type: 'submit', value: 'Filter' })
                 )

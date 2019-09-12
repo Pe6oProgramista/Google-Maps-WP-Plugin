@@ -15,7 +15,7 @@ function google_maps_register_block() {
     global $wpdb;
 	$table_name = $wpdb->prefix . 'markers';
     $existing_columns = $wpdb->get_col("DESC {$table_name}", 0);
-    $markers = $wpdb->get_results( "SELECT * FROM $table_name;" );
+    $markers = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 10;" );
 
     $db_markers = array (
         'columns' => $existing_columns,
@@ -41,18 +41,26 @@ function load_my_scripts() {
 
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'markers';
-	$markers = $wpdb->get_results( "SELECT * FROM $table_name;" );
+	$markers = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 10;" );
 
     wp_localize_script( 'myScript', 'db_markers', $markers );
-    wp_localize_script( 'dropDownFunc', 'db_markers', $markers );
+    wp_localize_script( 'dropDownFunc', 'ajaxUrl', admin_url('admin-ajax.php'));
 }
+
 
 function handle_requests() {
-    // print_r("zzzz");
+	$filters = isset($_POST['filters'])?trim($_POST['filters']):"";
+	$response = array(
+		'message' => 'Successfull Request',
+		'body' => $filters
+	);
+	wp_send_json($response);
+	wp_die();
 }
+add_action( 'wp_ajax_filter_request', 'handle_requests' );
+add_action( 'wp_ajax_nopriv_filter_request', 'handle_requests' );
 
 add_action( 'init', 'google_maps_register_block' );
-add_action( 'init','handle_requests' );
 add_action('wp_enqueue_scripts', 'load_my_scripts');
 add_action( 'wp_enqueue_scripts', 'register_plugin_styles' );
 
