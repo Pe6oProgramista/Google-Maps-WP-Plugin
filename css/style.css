@@ -1,7 +1,12 @@
-.dropdown {
+.filterDiv {
   position: relative;
   display: block;
-  margin: 10px;
+  padding: 3px 9px;
+  margin: 3px;
+  width: 100%;
+  border: 1px solid #774548;
+  border-radius: 4px;
+  box-sizing: border-box
 }
 
 .dropdown-content {
@@ -20,11 +25,9 @@
   display: block;
 }
 
-.dropdown option:hover {background-color: #ddd;}
-
-
 form {
     display: inline-block;
+    width: 60%;
 }
 
 #map {
@@ -35,4 +38,53 @@ form {
     width: 100vw;
     height: 60vh;
     position: none;
+}
+
+/* label.filterLabel {
+  display: inline-block;
+} */
+
+.filterInput {
+  display: none;
+}
+input[type="text"].filtersEditorInput {
+  border: none;
+  outline: none;
+  background-color: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0px;
+  margin: 1px;
+  width: 20px;
+  max-width: 100%;
+}
+
+.filterSpan {
+  margin: 2px;
+  border-style: solid;
+  border-radius: 3px;
+  border-color: transparent;
+  background-color: #F6E7E9;
+  color: #774548;
+  word-break: break-all;
+
+}
+.filtersEditor {
+  display: block;
+}
+
+a.deleteFilter {
+  text-decoration: none !important;
+}
+
+
+
+.filterDiv option:hover {background-color: #ddd;}
+
+.filterDiv:hover {
+  cursor:text;
+}
+
+.deleteFilter:hover {
+  cursor:pointer;
 }

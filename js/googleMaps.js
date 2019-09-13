@@ -10,7 +10,10 @@ let dl_options = datalists.toArray().map((v) => {
     return jQuery(`#${v.attr('id')} option`).toArray().map(v => v.value);
 })
 
+let fakeEl = jQuery('<span>').hide().appendTo(document.body);
+
 let inputs = jQuery('.filterInput');
+let editorInputs = jQuery('.filtersEditorInput');
 let lastInputsVals = inputs.map((k, v) => jQuery(v).val());
 let inputscommas = inputs.map((k, v) => (jQuery(v).val().match(/,/g) || []).length);
 
@@ -72,38 +75,6 @@ function deleteMarkers(markers) {
     markers = [];
 }
 
-function filldatalist(prefix, indx) {
-    if (dl_options[indx].length > 0) {
-        datalists[indx].empty();
-        for (let option of dl_options[indx]) {
-            window.counter++;
-            if (prefix.indexOf(option) < 0) {
-                datalists[indx].append(`<option value="${prefix}${option}">`);
-            }
-        }
-    }
-}
-
-
-// window.counter = 0;
-// function filldatalist(prefix, indx) {
-//   if (dl_options[indx].length > 0) {
-//     //datalists[indx].empty();
-//     // for (let option of dl_options[indx]) {
-//     const ch = datalists[indx].children();
-//     for (let i = 0; i < ch.length; i++) {
-//       window.counter++;
-//       if (prefix.indexOf(dl_options[indx][i]) < 0) {
-        
-//         if (i < dl_options[indx].length) {
-//           ch.get(i).setAttribute('value', `${prefix}${dl_options[indx][i]}`);
-//         } else {
-//           ch.eq(i).remove();
-//         }
-//       }
-//     }
-//   }
-// }
 
 jQuery(document).ready(function () {
     jQuery("#filtersForm").submit(function (event) {
@@ -128,21 +99,57 @@ jQuery(document).ready(function () {
     });
 });
 
-inputs.bind("change keyup", function () {
-    let indx = inputs.index(this);
+// editorInputs.bind("change keyup", function () {
+//     let indx = editorInputs.index(this); // index of curr filter input
 
-    let inputtrim = jQuery(this).val().split(',').map((v, i, arr) => (i == arr.length - 1) ? v.replace(/^\s+/g, "") : v.trim()).join(',');
-    let currentcommas = (jQuery(this).val().match(/,/g) || []).length;
+//     let inputtrim = jQuery(this).val().replace(/^\s+/g, "").replace(/\s+$/g, " ");
+//     // let currentcommas = (jQuery(this).val().match(/,/g) || []).length;
 
-    if (lastInputsVals[indx] != jQuery(this).val()) {
-        if (inputscommas[indx] != currentcommas || jQuery(this).val() == "") {
-            let lsIndex = inputtrim.lastIndexOf(separator);
-            let str = (lsIndex != -1) ? inputtrim.substr(0, lsIndex) + "," : "";
-            filldatalist(str, indx);
+//     if (lastInputsVals[indx] != inputtrim) {
+//         // if (inputscommas[indx] != currentcommas || jQuery(this).val() == "") {
+//         let lsIndex = inputtrim.lastIndexOf(separator);
+//         let str = (lsIndex != -1) ? inputtrim.substr(0, lsIndex) + "," : "";
+//         filldatalist(str, indx);
 
-            inputscommas[indx] = currentcommas;
-        }
-        jQuery(this).val(inputtrim);
-        lastInputsVals[indx] = inputtrim;
+//         // inputscommas[indx] = currentcommas;
+//         // }
+//         lastInputsVals[indx] = inputtrim;
+//     }
+// });
+
+jQuery('.filtersEditorInput').on('input', function () {
+    fakeEl.text(jQuery(this).val() || jQuery(this).attr('placeholder')).css('font', jQuery(this).css('font'));
+    jQuery(this).css('width', fakeEl.css('width'))
+});
+
+jQuery(".filtersEditorInput").bind("keyup", function (e) {
+    let filter = jQuery(this).val();
+
+    // TODO: Trim filter variable
+
+    if (e.which == 13 && jQuery(this).val()) {
+        jQuery(this).val("");
+
+        jQuery(this).closest(".filtersEditor").find("span:first").append(`
+            <span class="filterSpan">
+                ${filter}
+                <a class="deleteFilter" title="Remove filter" onclick="jQuery(this).closest('.filterSpan').remove();">
+                    <svg style="pointer-events:none;" class="svg-icon iconClearSm" width="12" height="12" viewBox="0 0 14 14">
+                        <path style="fill: #774548" d="M12 3.41L10.59 2 7 5.59 3.41 2 2 3.41 5.59 7 2 10.59 3.41 12 7 8.41 10.59 12 12 10.59 8.41 7z">
+                        </path>
+                    </svg>
+                </a>
+            </span>`);
+
+        jQuery(this).closest(".filterDiv").find(".filterInput:first").val(function () {
+            return this.value + ((this.value != "") ? "&" : "") + filter;
+        });
     }
+    if (e.which == 8 && filter == "") {
+        let filterSpans = jQuery(this).closest(".filtersEditor").find("span > .filterSpan");
+        jQuery(filterSpans[filterSpans.length - 1]).remove();
+    }
+});
+jQuery(".filterDiv").click(function () {
+    jQuery(this).find(".filtersEditorInput:first").focus();
 });

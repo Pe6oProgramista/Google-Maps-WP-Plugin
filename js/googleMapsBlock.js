@@ -3,12 +3,20 @@
 
     let filters = [];
     for (let key of Object.keys(filters_values)) {
-        let filter = el('div', { id: key + 'Div', class: 'dropdown' },
-            el('input', { list: key + 'List', id: key + 'Input', class: 'filterInput', name: key, type: 'text', placeholder: `Type ${key} filter` }),
+        let filter = el('div', {},
+        el('label', { class: 'filterLabel' }, key),
+        el('div', { id: key + 'Div', class: 'filterDiv' },
+            el('input', { id: key + 'Input', class: 'filterInput', name: key, type: 'text', value: '' }),
+            el('div', { id: key + 'filtersEditor', class: 'filtersEditor'},
+                el('span'),
+                el('input', {autocomplete: "off", type: 'text', id: key + 'filtersEditorInput', class: 'filtersEditorInput'})
+            ),
+            
+            
             el('datalist', { id: key + 'List', class: 'filterList dropdown-content' },
                 filters_values[key].map((v) => { return el('option', { value: v[key] }) })
             )
-        )
+        ))
         filters.push(filter);
     }
 

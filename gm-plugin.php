@@ -12,16 +12,16 @@ function google_maps_register_block() {
         plugins_url( 'js/googleMapsBlock.js', __FILE__ ),
         array( 'wp-blocks', 'wp-element')
     );
-    
+
     $colsStr = "city,country,region,type";
     $cols = explode(",", $colsStr);
-
+    
     global $wpdb;
     $table_name = $wpdb->prefix . 'markers';
 
     $filters_values = array();
     foreach ($cols as $col_name) {
-        $filters_values[$col_name] = $wpdb->get_results( "SELECT DISTINCT $col_name FROM $table_name ORDER BY $col_name ASC;" ); //ORDER BY $col_name ASC
+        $filters_values[$col_name] = $wpdb->get_results( "SELECT DISTINCT $col_name FROM $table_name LIMIT 10;" ); //ORDER BY $col_name ASC
     }
 
     wp_localize_script( 'google-maps', 'filters_values', $filters_values );
@@ -38,7 +38,7 @@ function load_my_scripts() {
 
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'markers';
-	$markers = $wpdb->get_results( "SELECT * FROM $table_name;" ); //LIMIT 10
+	$markers = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 10;" ); //LIMIT 10
 
     wp_localize_script( 'myScript', 'argsArray', array(
         'db_markers' => $markers,
@@ -48,11 +48,11 @@ function load_my_scripts() {
 add_action('wp_enqueue_scripts', 'load_my_scripts');
 
 function handle_filters_request() {
-    global $wpdb;
-    $table_name = $wpdb->prefix . 'markers';
-
     $colsStr = "city,country,region,type";
     $cols = explode(",", $colsStr);
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'markers';
 
     $post_filters = isset($_POST['filters'])?$_POST['filters']:[];
 
@@ -119,7 +119,7 @@ function register_plugin_styles() {
 	wp_register_style( 'style', plugins_url( 'gm-plugin/css/style.css' ) );
 	wp_enqueue_style( 'style' );
 }
-add_action( 'wp_enqueue_scripts', 'register_plugin_styles' );
+add_action( 'wp_enqueue_scripts', 'register_plugin_styles', PHP_INT_MAX);
 
 function activate() {
 	global $wpdb;
