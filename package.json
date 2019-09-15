@@ -1,0 +1,24 @@
+{
+  "name": "gm-plugin",
+  "version": "1.0.0",
+  "description": "Google Maps plugin for wordpress",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pe6oProgramista/gm-plugin.git"
+  },
+  "author": "Peter Milev",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Pe6oProgramista/gm-plugin/issues"
+  },
+  "homepage": "https://github.com/Pe6oProgramista/gm-plugin#readme"
+
+  "dependencies": {
+    "node-fetch": "*",
+    "mysql": "*"
+  } 
+}

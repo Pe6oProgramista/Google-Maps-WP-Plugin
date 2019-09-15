@@ -21,9 +21,9 @@ function google_maps_register_block() {
 
     $filters_values = array();
     foreach ($cols as $col_name) {
-        $filters_values[$col_name] = $wpdb->get_results( "SELECT DISTINCT $col_name FROM $table_name LIMIT 10;" ); //ORDER BY $col_name ASC
+        $filters_values[$col_name] = get_page_filters($col_name, "", 0);
     }
-
+    
     wp_localize_script( 'google-maps', 'filters_values', $filters_values );
  
     register_block_type( 'gm-plugin/google-maps', array(
@@ -38,7 +38,7 @@ function load_my_scripts() {
 
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'markers';
-	$markers = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 10;" ); //LIMIT 10
+	$markers = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 10;" );
 
     wp_localize_script( 'myScript', 'argsArray', array(
         'db_markers' => $markers,
@@ -58,10 +58,9 @@ function handle_filters_request() {
 
     if(count($cols) != count($post_filters)) {
         $response = array(
-            'status' => 200,
             'message' => 'Error in filters length'
         );
-        wp_send_json($response);
+        wp_send_json_error($response, 400);
         wp_die();
     }
 
@@ -100,20 +99,75 @@ function handle_filters_request() {
         }
     }
 
-	$results = $wpdb->get_results( $wpdb->prepare( 
+	$result = $wpdb->get_results( $wpdb->prepare( 
         $sql, 
         $sql_arr
     ) );
     
 	$response = array(
 		'message' => 'Successfull Request',
-		'body' => $results
+		'body' => $result
 	);
 	wp_send_json($response);
 	wp_die();
 }
 add_action( 'wp_ajax_filters_request', 'handle_filters_request' );
 add_action( 'wp_ajax_nopriv_filters_request', 'handle_filters_request' );
+
+function handle_autocomplete_request() {
+    if( !isset($_POST['filterType'], $_POST['inputVal'], $_POST['pageNum']) ) {
+        $response = array(
+            'message' => 'Unset parameters in post request'
+        );
+        wp_send_json_error($response, 400);
+        wp_die();
+    }
+    $filter_type = $_POST['filterType'];
+    $input_val = $_POST['inputVal'];
+    $page_num = $_POST['pageNum'];
+
+    $cols_str = "city,country,region,type";
+    $cols = explode(",", $cols_str);
+
+    if( !in_array($filter_type, $cols) || !is_numeric($page_num) ) {
+        $response = array(
+            'message' => 'Wrong filter name or page num'
+        );
+        wp_send_json_error($response, 400);
+        wp_die();
+    }
+
+    $result = get_page_filters($filter_type, $input_val, $page_num);
+    
+	$response = array(
+		'message' => 'Successfull Request',
+		'body' => $result
+	);
+	wp_send_json($response);
+	wp_die();
+}
+add_action( 'wp_ajax_autocomplete_request', 'handle_autocomplete_request' );
+add_action( 'wp_ajax_nopriv_autocomplete_request', 'handle_autocomplete_request' );
+
+function get_page_filters($col_name, $input_val, $page_num) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'markers';
+
+    $sql = "SELECT $col_name FROM
+        (SELECT DISTINCT $col_name FROM $table_name ORDER BY $col_name ASC) AS T
+        WHERE $col_name LIKE %s
+        LIMIT %d,10;";
+
+    $sql_arr = array (
+        '%' . $wpdb->esc_like( $input_val ) . '%',
+        $page_num
+    );
+
+    return $wpdb->get_results( $wpdb->prepare( 
+        $sql,
+        $sql_arr
+    ) );
+}
 
 function register_plugin_styles() {
 	wp_register_style( 'style', plugins_url( 'gm-plugin/css/style.css' ) );

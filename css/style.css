@@ -6,23 +6,7 @@
   width: 100%;
   border: 1px solid #774548;
   border-radius: 4px;
-  box-sizing: border-box
-}
-
-.dropdown-content {
-  display: none;
-  position: absolute;
-  min-width: 160px;
-  overflow: auto;
-  /* box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); */
-  z-index: 1;
-}
-
-.dropdown-content option {
-  color: black;
-  padding: 12px 16px;
-  text-decoration: none;
-  display: block;
+  box-sizing: border-box;
 }
 
 form {
@@ -32,17 +16,12 @@ form {
 
 #map {
     margin: 10px;
-    /* top: 5px; */
-    right: 14vw;
-    border: 2px;
-    width: 100vw;
-    height: 60vh;
-    position: none;
+    border: 0px solid;
+    box-shadow: 5px 5px 15px black;
+    width: 80vw;
+    height: 80vh;
+    position: center;
 }
-
-/* label.filterLabel {
-  display: inline-block;
-} */
 
 .filterInput {
   display: none;
@@ -78,6 +57,9 @@ a.deleteFilter {
 }
 
 
+input::-webkit-calendar-picker-indicator {
+  display: none;
+}
 
 .filterDiv option:hover {background-color: #ddd;}
 
