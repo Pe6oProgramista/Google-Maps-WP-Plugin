@@ -9,7 +9,7 @@
                 el('input', { id: key + 'Input', class: 'filterInput', name: key, type: 'text', value: '' }),
                 el('div', { id: key + 'filtersEditor', class: 'filtersEditor' },
                     el('span'),
-                    el('input', { list: key + "List", autocomplete: "on", type: 'text', id: key + 'filtersEditorInput', class: 'filtersEditorInput' })
+                    el('input', { list: key + "List", autocomplete: "off", type: 'text', id: key + 'filtersEditorInput', class: 'filtersEditorInput' })
                 ),
 
 
@@ -27,7 +27,25 @@
                 el('div', null, 'Filter markers by: '),
                 el('form', { id: 'filtersForm', method: 'POST' },
                     filters,
-                    el('input', { type: 'submit', value: 'Filter' })
+                    el('div', {id: 'dot1', class: 'dotDiv'},
+                        el('span', null, 'First dot: '),
+                        el('label', { for: 'latDot1' }, 'lat'),
+                        el('input', { id: 'latDot1', class: 'dotFilterInput', name: 'latDot1', type: 'number', min: "-90", max: "90" }),
+                        el('label', { for: 'lngDot1' }, 'lng'),
+                        el('input', { id: 'lngDot1', class: 'dotFilterInput', name: 'lngDot1', type: 'number', min: "-180", max: "180" }),
+                    ),
+                    el('div', {id: 'dot2', class: 'dotDiv'},
+                        el('span', null, 'Second dot: '),
+                        el('label', { for: 'latDot2' }, 'lat'),
+                        el('input', { id: 'latDot2', class: 'dotFilterInput', name: 'latDot2', type: 'number', min: "-90", max: "90" }),
+                        el('label', { for: 'lngDot2' }, 'lng'),
+                        el('input', { id: 'lngDot2', class: 'dotFilterInput', name: 'lngDot2', type: 'number', min: "-180", max: "180" })
+                    ),
+                    el('button', {id: 'initAreaBtn'}, 'Init Area')
+                ),
+                el('div', null,
+                    'Results count: ',
+                    el('span', {id: 'resultsCnt'})
                 )
             ),
             el('div', { id: 'map' }

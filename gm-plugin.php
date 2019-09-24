@@ -13,15 +13,15 @@ function google_maps_register_block() {
         array( 'wp-blocks', 'wp-element')
     );
 
-    $colsStr = "city,country,region,type";
-    $cols = explode(",", $colsStr);
+    $cols_str = "city,country,region,type";
+    $cols = explode(",", $cols_str);
     
     global $wpdb;
     $table_name = $wpdb->prefix . 'markers';
 
     $filters_values = array();
     foreach ($cols as $col_name) {
-        $filters_values[$col_name] = get_page_filters($col_name, "", 0);
+        $filters_values[$col_name] = get_page_filters($col_name, "", [], 0);
     }
     
     wp_localize_script( 'google-maps', 'filters_values', $filters_values );
@@ -38,7 +38,7 @@ function load_my_scripts() {
 
 	global $wpdb;
 	$table_name = $wpdb->prefix . 'markers';
-	$markers = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 10;" );
+	$markers = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 1000;" );
 
     wp_localize_script( 'myScript', 'argsArray', array(
         'db_markers' => $markers,
@@ -48,28 +48,42 @@ function load_my_scripts() {
 add_action('wp_enqueue_scripts', 'load_my_scripts');
 
 function handle_filters_request() {
-    $colsStr = "city,country,region,type";
-    $cols = explode(",", $colsStr);
+    $cols_str = "city,country,region,type";
+    $cols = explode(",", $cols_str);
+    $dotsNames = ["latDot1", "lngDot1", "latDot2", "lngDot2"];
 
     global $wpdb;
     $table_name = $wpdb->prefix . 'markers';
 
-    $post_filters = isset($_POST['filters'])?$_POST['filters']:[];
-
-    if(count($cols) != count($post_filters)) {
-        $response = array(
-            'message' => 'Error in filters length'
-        );
-        wp_send_json_error($response, 400);
-        wp_die();
-    }
+    $post_data = isset($_POST['filters'])?$_POST['filters']:[];
 
     $filters = array();
-    for ($i = 0; $i < count($post_filters); $i++) {
-        if( $post_filters[$i] != "" ) {
-            $filters[$cols[$i]] = $post_filters[$i];
+    for($i = 0; $i < count($cols); $i++) {
+        if( !isset($post_data[$cols[$i]]) ) {
+            $response = array(
+                'message' => 'Error in filters length'
+            );
+            wp_send_json_error($response, 400);
+            wp_die();
+        } else if($post_data[$cols[$i]] != "") {
+            $filters[$cols[$i]] = $post_data[$cols[$i]];
         }
     }
+
+    $with_dots = true;
+    for($i = 0; $i < count($dotsNames); $i++) {
+        if( !isset($post_data[$dotsNames[$i]]) ) {
+            $response = array(
+                'message' => 'Error in filters length'
+            );
+            wp_send_json_error($response, 400);
+            wp_die();
+        } else if($post_data[$dotsNames[$i]] == "") {
+            $with_dots = false;
+        }
+    }
+    $lat = minMax($post_data["latDot1"], $post_data["latDot2"]);
+    $lng = minMax($post_data["lngDot1"], $post_data["lngDot2"]);
     
     $sql = "SELECT * FROM $table_name";
     $sql_arr = array();
@@ -78,7 +92,7 @@ function handle_filters_request() {
         $sql .= " WHERE ";
         $last_key = array_keys($filters)[count($filters)-1];
         foreach ($filters as $key => $value) {
-            $curr_filters = explode(",", $value);
+            $curr_filters = explode("&", $value);
             if( count($curr_filters) > 0 ) {
                 $sql .= "$key IN (";
 
@@ -97,6 +111,8 @@ function handle_filters_request() {
                 }
             }
         }
+        $sql .= "AND latitude BETWEEN " . $lat[0] . " AND " . $lat[1]
+            . "AND longitude BETWEEN " . $lng[0] . " AND " . $lng[1];
     }
 
 	$result = $wpdb->get_results( $wpdb->prepare( 
@@ -115,15 +131,17 @@ add_action( 'wp_ajax_filters_request', 'handle_filters_request' );
 add_action( 'wp_ajax_nopriv_filters_request', 'handle_filters_request' );
 
 function handle_autocomplete_request() {
-    if( !isset($_POST['filterType'], $_POST['inputVal'], $_POST['pageNum']) ) {
+    if( !isset($_POST['filterType'], $_POST['inputVal'], $_POST['formData'], $_POST['pageNum']) ) {
         $response = array(
             'message' => 'Unset parameters in post request'
         );
         wp_send_json_error($response, 400);
         wp_die();
     }
+
     $filter_type = $_POST['filterType'];
     $input_val = $_POST['inputVal'];
+    $form_data = $_POST['formData'];
     $page_num = $_POST['pageNum'];
 
     $cols_str = "city,country,region,type";
@@ -137,7 +155,15 @@ function handle_autocomplete_request() {
         wp_die();
     }
 
-    $result = get_page_filters($filter_type, $input_val, $page_num);
+    if(count($cols) != count($form_data)) {
+        $response = array(
+            'message' => 'Error in filters length'
+        );
+        wp_send_json_error($response, 400);
+        wp_die();
+    }
+
+    $result = get_page_filters($filter_type, $input_val, $form_data, $page_num);
     
 	$response = array(
 		'message' => 'Successfull Request',
@@ -149,24 +175,66 @@ function handle_autocomplete_request() {
 add_action( 'wp_ajax_autocomplete_request', 'handle_autocomplete_request' );
 add_action( 'wp_ajax_nopriv_autocomplete_request', 'handle_autocomplete_request' );
 
-function get_page_filters($col_name, $input_val, $page_num) {
+function get_page_filters($col_name, $input_val, $form_data, $page_num) {
     global $wpdb;
     $table_name = $wpdb->prefix . 'markers';
 
+    $cols_str = "city,country,region,type";
+    $cols = explode(",", $cols_str);
+    
+    $sql_arr = array();
     $sql = "SELECT $col_name FROM
-        (SELECT DISTINCT $col_name FROM $table_name ORDER BY $col_name ASC) AS T
-        WHERE $col_name LIKE %s
-        LIMIT %d,10;";
+        (SELECT DISTINCT $col_name FROM $table_name";
+        
+    $filters = array();
+    for ($i = 0; $i < count($form_data); $i++) {
+        if( $form_data[$i] != "" ) {
+            $filters[$cols[$i]] = $form_data[$i];
+        }
+    }
 
-    $sql_arr = array (
-        '%' . $wpdb->esc_like( $input_val ) . '%',
-        $page_num
-    );
+    if( count($filters) > 0 ) {
+        $sql .= " WHERE ";
+        $last_key = array_keys($filters)[count($filters)-1];
+        foreach ($filters as $key => $value) {
+            if($key != $col_name) {
+                $curr_filters = explode("&", $value);
+                if( count($curr_filters) > 0 ) {
+                    $sql .= "$key IN (";
+
+                    $curr_last_key = array_keys($curr_filters)[count($curr_filters)-1];
+                    foreach ($curr_filters as $k => $v) {
+                        $sql .= "\"%s\"";
+                        array_push($sql_arr, $v);
+
+                        if( $k != $curr_last_key ) {
+                        $sql .= ", ";
+                        }
+                    }
+                    $sql .= ")";
+                    if($key != $last_key) {
+                        $sql .= " AND ";
+                    }
+                }
+            }
+        }
+    }
+
+    $sql .= " ORDER BY $col_name ASC)
+        AS T WHERE $col_name LIKE %s LIMIT %d,5;";
+    array_push($sql_arr, '%' . $wpdb->esc_like( $input_val ) . '%', $page_num);
 
     return $wpdb->get_results( $wpdb->prepare( 
         $sql,
         $sql_arr
     ) );
+}
+
+function minMax($firstNum, $secondNum) {
+    if($firstNum > $secondNum) {
+        return [$secondNum, $firstNum];
+    }
+    return [$firstNum, $secondNum];
 }
 
 function register_plugin_styles() {

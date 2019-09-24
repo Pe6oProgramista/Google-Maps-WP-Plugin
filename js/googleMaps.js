@@ -55,6 +55,8 @@ function initMarkers(markers_values) {
 			}).open(map, markerContent.marker);
 		});
 	}
+
+	jQuery("#resultsCnt").text(db_markers.length);
 }
 
 function deleteMarkers(markers) {
@@ -64,8 +66,28 @@ function deleteMarkers(markers) {
 	markers = [];
 }
 
+function initArea(lat1, lng1, lat2, lng2) {
+	var squareCoords = [
+		{ lat: lat1, lng: lng1 },
+		{ lat: lat1, lng: lng2 },
+		{ lat: lat2, lng: lng2 },
+		{ lat: lat2, lng: lng1 }
+	];
+
+	var square = new google.maps.Polygon({
+		paths: squareCoords,
+		strokeColor: '#FF0000',
+		strokeOpacity: 0.8,
+		strokeWeight: 1,
+		fillColor: '#FF0000',
+		fillOpacity: 0.15,
+		map: map
+	});
+}
+
 function updateAutocompleteData(inputField) {
 	let filterType = inputField.closest(".filterDiv").find(".filterInput:first").attr('name');
+	let formData = inputField.closest("#filtersForm").serializeArray().map((v) => v.value);
 	jQuery.ajax({
 		type: "POST",
 		url: ajaxUrl,
@@ -73,6 +95,7 @@ function updateAutocompleteData(inputField) {
 			action: 'autocomplete_request',
 			filterType: filterType,
 			inputVal: inputField.val(),
+			formData: formData,
 			pageNum: pageNum
 		},
 		error: function (response) { console.log(response.responseJSON.data.messagesg) },
@@ -103,8 +126,8 @@ function updateAutocompleteData(inputField) {
 }
 
 function sendForm(form) {
-	let form_filters = form.serializeArray().map((v) => v.value);
-
+	let form_filters = form.serializeArray();
+	console.log(form_filters)
 	jQuery.ajax({
 		type: "POST",
 		url: ajaxUrl,
@@ -122,6 +145,15 @@ function sendForm(form) {
 }
 
 jQuery(document).ready(function () {
+	// focus on input field when click on div
+	jQuery(".filterDiv").click(function () {
+		jQuery(this).find(".filtersEditorInput:first").focus();
+	});
+
+	jQuery("#filtersForm").submit(function (event) {
+		event.preventDefault();
+	});
+
 	jQuery('.filtersEditorInput').on('input', function () {
 		// change input field width according to text width
 		fakeEl.text(jQuery(this).val() || jQuery(this).attr('placeholder')).css('font', jQuery(this).css('font'));
@@ -132,20 +164,8 @@ jQuery(document).ready(function () {
 		updateAutocompleteData(jQuery(this))
 	});
 
-	jQuery('.filtersEditorInput').on('blur', function () {
-		pageNum = 0;
-		// jQuery(this).closest(".filterList").css("display", "none");
-	});
-
-	// jQuery('.filtersEditorInput').on('focus', function () {
-	// 	pageNum = 0;
-	// 	jQuery(this).closest(".filterList").css("display", "block");
-	// });
-
-	jQuery(".filtersEditorInput").on("keyup", function (e) {
+	jQuery(".filtersEditorInput").on("keydown", function (e) {
 		let filter = jQuery(this).val();
-
-		// TODO: Trim filter variable
 
 		if (e.which == 13 && jQuery(this).val()) {
 			jQuery(this).val("");
@@ -154,7 +174,7 @@ jQuery(document).ready(function () {
 			jQuery(this).closest(".filtersEditor").find("span:first").append(`
             <span class="filterSpan">
                 ${filter}
-                <a class="deleteFilter" title="Remove filter" onclick="jQuery(this).closest('.filterSpan').remove();">
+                <a class="deleteFilter" title="Remove filter">
                     <svg style="pointer-events:none;" class="svg-icon iconClearSm" width="12" height="12" viewBox="0 0 14 14">
                         <path style="fill: #774548" d="M12 3.41L10.59 2 7 5.59 3.41 2 2 3.41 5.59 7 2 10.59 3.41 12 7 8.41 10.59 12 12 10.59 8.41 7z">
                         </path>
@@ -177,22 +197,30 @@ jQuery(document).ready(function () {
 
 			let filterSpans = jQuery(this).closest(".filtersEditor").find("span > .filterSpan");
 			jQuery(filterSpans[filterSpans.length - 1]).remove();
-			
-			sendForm(jQuery(this).closest("#filtersForm"));
+
+			sendForm(jQuery("#filtersForm"));
 		}
 	});
 
-	// focus on input field when click on div
-	jQuery(".filterDiv").click(function () {
-		jQuery(this).find(".filtersEditorInput:first").focus();
-	});
+	jQuery(document).on("click", ".deleteFilter", function () {
+		let val = jQuery(this).closest("span").text().trim();
+		jQuery(this).closest(".filterDiv").find(".filterInput:first").val(function () {
+			let newValue = this.value.split("&");
+			newValue.splice(newValue.indexOf(val), 1);
+			return newValue.join("&");
+		});
+		jQuery(this).closest('.filterSpan').remove();
+		sendForm(jQuery("#filtersForm"));
+	})
 
-	// on click next page button to update the autocomplete list
-	jQuery(".nextPageBut").click(function () {
-		pageNum++;
-	});
-
-	jQuery("#filtersForm").submit(function (event) {
-		event.preventDefault();
-	});
+	jQuery("#initAreaBtn").on("click", function () {
+		let form = jQuery("#filtersForm");
+		sendForm(form);
+		let formData = form.serializeArray();
+		console.log(formData);
+		initArea(Number(formData["latDot1"]),
+			Number(formData["lngDot1"]),
+			Number(formData["latDot2"]),
+			Number(formData["lngDot2"]));
+	})
 });

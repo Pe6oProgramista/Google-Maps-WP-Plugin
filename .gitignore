@@ -1,2 +1,9 @@
 .gitignore
 node_modules
+Backups
+Cache
+logs
+User
+Network Persistent State
+rapid_render.json
+storage.json
