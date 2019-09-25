@@ -18,13 +18,8 @@ function google_maps_register_block() {
     
     global $wpdb;
     $table_name = $wpdb->prefix . 'markers';
-
-    $filters_values = array();
-    foreach ($cols as $col_name) {
-        $filters_values[$col_name] = get_page_filters($col_name, "", [], 0);
-    }
     
-    wp_localize_script( 'google-maps', 'filters_values', $filters_values );
+    wp_localize_script( 'google-maps', 'filters_names', $cols );
  
     register_block_type( 'gm-plugin/google-maps', array(
         'editor_script' => 'google-maps',
@@ -36,12 +31,7 @@ function load_my_scripts() {
     wp_enqueue_script('myScript', plugins_url( 'js/googleMaps.js', __FILE__ ), array('jquery'), false, true );
 	wp_enqueue_script('googleScript', 'https://maps.googleapis.com/maps/api/js?key=AIzaSyBrs6IwIvyxTG0IkEBuFkpImHscVt36Riw&callback=initMap', array(), false, true );
 
-	global $wpdb;
-	$table_name = $wpdb->prefix . 'markers';
-	$markers = $wpdb->get_results( "SELECT * FROM $table_name LIMIT 1000;" );
-
     wp_localize_script( 'myScript', 'argsArray', array(
-        'db_markers' => $markers,
         'ajaxUrl' => admin_url('admin-ajax.php')
     ) );
 }
@@ -82,14 +72,17 @@ function handle_filters_request() {
             $with_dots = false;
         }
     }
-    $lat = minMax($post_data["latDot1"], $post_data["latDot2"]);
-    $lng = minMax($post_data["lngDot1"], $post_data["lngDot2"]);
+    $lat = minMax((double)$post_data["latDot1"], (double)$post_data["latDot2"]);
+    $lng = minMax((double)$post_data["lngDot1"], (double)$post_data["lngDot2"]);
     
     $sql = "SELECT * FROM $table_name";
     $sql_arr = array();
 
-    if( count($filters) > 0 ) {
+    if($with_dots || count($filters) > 0) {
         $sql .= " WHERE ";
+    }
+
+    if( count($filters) > 0 ) {
         $last_key = array_keys($filters)[count($filters)-1];
         foreach ($filters as $key => $value) {
             $curr_filters = explode("&", $value);
@@ -106,20 +99,21 @@ function handle_filters_request() {
                     }
                 }
                 $sql .= ")";
-                if($key != $last_key) {
+                if($key != $last_key || $with_dots) {
                     $sql .= " AND ";
                 }
             }
         }
-        $sql .= "AND latitude BETWEEN " . $lat[0] . " AND " . $lat[1]
-            . "AND longitude BETWEEN " . $lng[0] . " AND " . $lng[1];
     }
-
+    if($with_dots) {
+        $sql .= "latitude BETWEEN " . $lat[0] . " AND " . $lat[1]
+            . " AND longitude BETWEEN " . $lng[0] . " AND " . $lng[1];
+    }
 	$result = $wpdb->get_results( $wpdb->prepare( 
         $sql, 
         $sql_arr
     ) );
-    
+
 	$response = array(
 		'message' => 'Successfull Request',
 		'body' => $result
@@ -155,15 +149,7 @@ function handle_autocomplete_request() {
         wp_die();
     }
 
-    if(count($cols) != count($form_data)) {
-        $response = array(
-            'message' => 'Error in filters length'
-        );
-        wp_send_json_error($response, 400);
-        wp_die();
-    }
-
-    $result = get_page_filters($filter_type, $input_val, $form_data, $page_num);
+    $result = get_page_filters($filter_type, $input_val, $form_data, $page_num, $with_dots);
     
 	$response = array(
 		'message' => 'Successfull Request',
@@ -181,20 +167,48 @@ function get_page_filters($col_name, $input_val, $form_data, $page_num) {
 
     $cols_str = "city,country,region,type";
     $cols = explode(",", $cols_str);
-    
-    $sql_arr = array();
-    $sql = "SELECT $col_name FROM
-        (SELECT DISTINCT $col_name FROM $table_name";
-        
+    $dotsNames = ["latDot1", "lngDot1", "latDot2", "lngDot2"];
+
     $filters = array();
-    for ($i = 0; $i < count($form_data); $i++) {
-        if( $form_data[$i] != "" ) {
-            $filters[$cols[$i]] = $form_data[$i];
+    for($i = 0; $i < count($cols); $i++) {
+        if( !isset($form_data[$cols[$i]]) ) {
+            $response = array(
+                'message' => 'Error in filters length'
+            );
+            wp_send_json_error($response, 400);
+            wp_die();
+        } else if($form_data[$cols[$i]] != "") {
+            $filters[$cols[$i]] = $form_data[$cols[$i]];
         }
     }
 
-    if( count($filters) > 0 ) {
+    $with_dots = true;
+    for($i = 0; $i < count($dotsNames); $i++) {
+        if( !isset($form_data[$dotsNames[$i]]) ) {
+            $response = array(
+                'message' => 'Error in filters length'
+            );
+            wp_send_json_error($response, 400);
+            wp_die();
+        } else if($form_data[$dotsNames[$i]] == "") {
+            $with_dots = false;
+        }
+    }
+
+    if($with_dots) {
+        $lat = minMax((double)$form_data["latDot1"], (double)$form_data["latDot2"]);
+        $lng = minMax((double)$form_data["lngDot1"], (double)$form_data["lngDot2"]);
+    }
+
+    $sql_arr = array();
+    $sql = "SELECT $col_name FROM
+        (SELECT DISTINCT $col_name FROM $table_name";
+
+    if($with_dots || count($filters) > 0) {
         $sql .= " WHERE ";
+    }
+
+    if( count($filters) > 0 ) {
         $last_key = array_keys($filters)[count($filters)-1];
         foreach ($filters as $key => $value) {
             if($key != $col_name) {
@@ -212,14 +226,17 @@ function get_page_filters($col_name, $input_val, $form_data, $page_num) {
                         }
                     }
                     $sql .= ")";
-                    if($key != $last_key) {
+                    if($key != $last_key || $with_dots) {
                         $sql .= " AND ";
                     }
                 }
             }
         }
     }
-
+    if($with_dots) {
+        $sql .= "latitude BETWEEN " . $lat[0] . " AND " . $lat[1]
+            . " AND longitude BETWEEN " . $lng[0] . " AND " . $lng[1];
+    }
     $sql .= " ORDER BY $col_name ASC)
         AS T WHERE $col_name LIKE %s LIMIT %d,5;";
     array_push($sql_arr, '%' . $wpdb->esc_like( $input_val ) . '%', $page_num);

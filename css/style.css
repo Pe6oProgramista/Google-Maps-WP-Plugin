@@ -58,8 +58,7 @@ a.deleteFilter {
 
 input[type=number].dotFilterInput {
   display: inline-block;
-  padding: 3px 9px;
-  margin: 3px;
+  margin: 3px !important;
   color: solid #774548;
 }
 

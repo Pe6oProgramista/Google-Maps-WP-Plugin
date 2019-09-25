@@ -2,7 +2,8 @@
     let el = element.createElement;
 
     let filters = [];
-    for (let key of Object.keys(filters_values)) {
+    for (let i = 0; i < filters_names.length; i++) {
+        let key = filters_names[i];
         let filter = el('div', {},
             el('label', { class: 'filterLabel' }, key),
             el('div', { id: key + 'Div', class: 'filterDiv' },
@@ -12,10 +13,7 @@
                     el('input', { list: key + "List", autocomplete: "off", type: 'text', id: key + 'filtersEditorInput', class: 'filtersEditorInput' })
                 ),
 
-
-                el('datalist', { id: key + 'List', class: 'filterList' },
-                    filters_values[key].map((v) => { return el('option', { value: v[key] }) })
-                )
+                el('datalist', { id: key + 'List', class: 'filterList' })
             )
         );
         filters.push(filter);

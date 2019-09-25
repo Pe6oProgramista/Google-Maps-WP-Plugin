@@ -4,6 +4,7 @@ delete argsArray;
 
 let map;
 let markers = [];
+let square;
 
 let fakeEl = jQuery('<span>').hide().appendTo(document.body);
 let pageNum = 0;
@@ -18,7 +19,6 @@ function initMap() {
 			center: pos
 		});
 	}
-	initMarkers(db_markers);
 }
 
 function initMarkers(markers_values) {
@@ -67,27 +67,38 @@ function deleteMarkers(markers) {
 }
 
 function initArea(lat1, lng1, lat2, lng2) {
-	var squareCoords = [
-		{ lat: lat1, lng: lng1 },
-		{ lat: lat1, lng: lng2 },
-		{ lat: lat2, lng: lng2 },
-		{ lat: lat2, lng: lng1 }
-	];
+	if (square) square.setMap(null);
+	if (lat1 != lat2 || lng1 != lng2) {
+		let lat = minMax(lat1, lat2);
+		let lng = minMax(lng1, lng2);
+		
+		square = new google.maps.Rectangle({
+			strokeColor: '#FF0000',
+			strokeOpacity: 0.8,
+			strokeWeight: 1,
+			fillColor: '#FF0000',
+			fillOpacity: 0.15,
+			map: map,
+			bounds: {
+				north: lat[1],
+				south: lat[0],
+				east: lng[1],
+				west: lng[0]
+			}
+		});
+	}
+}
 
-	var square = new google.maps.Polygon({
-		paths: squareCoords,
-		strokeColor: '#FF0000',
-		strokeOpacity: 0.8,
-		strokeWeight: 1,
-		fillColor: '#FF0000',
-		fillOpacity: 0.15,
-		map: map
-	});
+function minMax(firstNum, secondNum) {
+    if(firstNum > secondNum) {
+        return [secondNum, firstNum];
+    }
+    return [firstNum, secondNum];
 }
 
 function updateAutocompleteData(inputField) {
 	let filterType = inputField.closest(".filterDiv").find(".filterInput:first").attr('name');
-	let formData = inputField.closest("#filtersForm").serializeArray().map((v) => v.value);
+	let formData = getFormData(inputField.closest("#filtersForm"));
 	jQuery.ajax({
 		type: "POST",
 		url: ajaxUrl,
@@ -98,10 +109,9 @@ function updateAutocompleteData(inputField) {
 			formData: formData,
 			pageNum: pageNum
 		},
-		error: function (response) { console.log(response.responseJSON.data.messagesg) },
+		error: function (response) { console.log(response.responseJSON.data.message) },
 		success: function (result) {
 			let nextPageData = result.body;
-
 			let datalist = inputField.closest(".filterDiv").find(".filterList:first");
 			let options = datalist.find("option");
 
@@ -125,9 +135,19 @@ function updateAutocompleteData(inputField) {
 	});
 }
 
+function getFormData(form) {
+	var unindexed_array = form.serializeArray();
+	var indexed_array = {};
+
+	unindexed_array.map((n) => {
+		indexed_array[n['name']] = n['value'];
+	});
+
+	return indexed_array;
+}
+
 function sendForm(form) {
-	let form_filters = form.serializeArray();
-	console.log(form_filters)
+	let form_filters = getFormData(form);
 	jQuery.ajax({
 		type: "POST",
 		url: ajaxUrl,
@@ -216,8 +236,7 @@ jQuery(document).ready(function () {
 	jQuery("#initAreaBtn").on("click", function () {
 		let form = jQuery("#filtersForm");
 		sendForm(form);
-		let formData = form.serializeArray();
-		console.log(formData);
+		let formData = getFormData(form);
 		initArea(Number(formData["latDot1"]),
 			Number(formData["lngDot1"]),
 			Number(formData["latDot2"]),
